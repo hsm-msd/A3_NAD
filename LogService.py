@@ -19,15 +19,19 @@ class LoggingService:
                 conn, addr = server_socket.accept()
                 with conn:
                     print(f"Connection established from {addr}")
-                    data = conn.recv(1024)
-                    if data:
+                    # Log the new connection
+                    self.log_message("Connection established",
+                                     addr, "New Connection")
+                    while True:
+                        data = conn.recv(1024)
+                        if not data:
+                            break  # Exit the loop if no more data is received
                         message = data.decode()
                         self.log_message(message, addr)
 
-    def log_message(self, message, addr):
+    def log_message(self, message, addr, level='INFO'):
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         ip, port = addr
-        level = 'INFO'  # or whatever log level is appropriate
         formatted_message = self.format.format(
             level=level, timestamp=timestamp, ip=ip, port=port, message=message)
         with open("logfile.txt", "a") as log_file:
