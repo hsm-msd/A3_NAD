@@ -1,10 +1,13 @@
+import argparse
 import socket
+import datetime
 
 
 class LoggingService:
-    def __init__(self, host, port):
+    def __init__(self, host, port, format):
         self.host = host
         self.port = port
+        self.format = format
 
     def start(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
@@ -19,13 +22,27 @@ class LoggingService:
                     data = conn.recv(1024)
                     if data:
                         message = data.decode()
-                        self.log_message(message)
+                        self.log_message(message, addr)
 
-    def log_message(self, message):
+    def log_message(self, message, addr):
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        ip, port = addr
+        level = 'INFO'  # or whatever log level is appropriate
+        formatted_message = self.format.format(
+            level=level, timestamp=timestamp, ip=ip, port=port, message=message)
         with open("logfile.txt", "a") as log_file:
-            log_file.write(message + "\n")
+            log_file.write(formatted_message + "\n")
 
 
 if __name__ == "__main__":
-    logging_service = LoggingService("10.169.92.126", 5300)
+    parser = argparse.ArgumentParser(description='Start a logging service.')
+    parser.add_argument('--host', type=str, required=True,
+                        help='The host to bind the logging service to.')
+    parser.add_argument('--port', type=int, required=True,
+                        help='The port to bind the logging service to.')
+    parser.add_argument('--format', type=str, required=True,
+                        help='The format for log messages.')
+    args = parser.parse_args()
+
+    logging_service = LoggingService(args.host, args.port, args.format)
     logging_service.start()
