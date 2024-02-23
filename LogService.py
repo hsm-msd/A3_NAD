@@ -2,6 +2,8 @@ import argparse
 import socket
 import datetime
 import threading
+from collections import deque
+import time
 
 
 class LoggingService:
@@ -28,11 +30,23 @@ class LoggingService:
                 client_thread.start()
 
     def handle_client(self, conn, addr):
+        # Keep track of the last 10 request times
+        request_times = deque(maxlen=10)
+
         with conn:
             while True:
+                if len(request_times) == 10 and time.time() - request_times[0] < 1:
+                    # If the client has made 10 requests in less than 1 second, disconnect them
+                    self.log_message("Too many requests", addr, "WARNING")
+                    break
+
                 data = conn.recv(1024)
                 if not data:
                     break  # Exit the loop if no more data is received
+
+                # Add the current time to the request times
+                request_times.append(time.time())
+
                 message = data.decode()
                 self.log_message(message, addr)
 
