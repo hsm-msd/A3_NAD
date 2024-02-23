@@ -1,6 +1,7 @@
 import argparse
 import socket
 import datetime
+import threading
 
 
 class LoggingService:
@@ -17,17 +18,23 @@ class LoggingService:
 
             while True:
                 conn, addr = server_socket.accept()
-                with conn:
-                    print(f"Connection established from {addr}")
-                    # Log the new connection
-                    self.log_message("Connection established",
-                                     addr, "New Connection")
-                    while True:
-                        data = conn.recv(1024)
-                        if not data:
-                            break  # Exit the loop if no more data is received
-                        message = data.decode()
-                        self.log_message(message, addr)
+                print(f"Connection established from {addr}")
+                # Log the new connection
+                self.log_message("Connection established",
+                                 addr, "New Connection")
+                # Start a new thread that will handle the client
+                client_thread = threading.Thread(
+                    target=self.handle_client, args=(conn, addr))
+                client_thread.start()
+
+    def handle_client(self, conn, addr):
+        with conn:
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    break  # Exit the loop if no more data is received
+                message = data.decode()
+                self.log_message(message, addr)
 
     def log_message(self, message, addr, level='INFO'):
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
